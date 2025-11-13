@@ -35,6 +35,13 @@ services:
     command: ["--data-dir=/data/pd", "--client-urls", "http://0.0.0.0:2379", "--peer-urls", "http://0.0.0.0:2380", "--name", "pd1", "--initial-cluster", "pd1=http://pd:2380", "--advertise-client-urls", "http://pd:2379", "--advertise-peer-urls", "http://pd:2380"]
     ports:
       - "2379:2379"
+    volumes:
+      - pd-data:/data/pd
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:2379/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   tikv:
     image: pingcap/tikv:latest
@@ -42,6 +49,8 @@ services:
     command: ["--data-dir=/data/tikv", "--pd", "pd:2379", "--addr", "0.0.0.0:20160", "--advertise-addr", "tikv:20160"]
     depends_on:
       - pd
+    volumes:
+      - tikv-data:/data/tikv
 
   tidb:
     image: pingcap/tidb:latest
@@ -51,16 +60,18 @@ services:
       - "4000:4000"
     volumes:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
-    
-    # --- FIXED RESOURCE ALLOCATION (Correct YAML and Syntax) ---
-    # Allocate 2 CPU cores 
-    cpus: 2.0 
-    # Set a hard memory limit of 4GB (4096m)
-    mem_limit: 4096m
-    # --- END OF RESOURCE ALLOCATION ---
-    
     depends_on:
       - tikv
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4096M
       
   # --- TiCDC Component (For Kafka integration) ---
   ticdc:
@@ -89,12 +100,25 @@ services:
       - DB_USER=root
       - DB_PASSWORD=
       - DB_NAME=sre_test
-      - JWT_SECRET=sre-test-secret-key-change-in-production
+      - JWT_SECRET=${JWT_SECRET:-sre-test-secret-key-change-in-production}
       - JWT_EXPIRY=24h
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost}
+      - RATE_LIMIT_WINDOW=15
+      - RATE_LIMIT_MAX=100
     depends_on:
       - tidb
       - kafka
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
 
   client:
     build:
@@ -106,6 +130,16 @@ services:
     depends_on:
       - api
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
   # TiCDC Initialization Service
   ticdc-init:
@@ -134,3 +168,15 @@ services:
       - ticdc
       - ticdc-init
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+# Data persistence volumes
+volumes:
+  pd-data:
+    driver: local
+  tikv-data:
+    driver: local
