@@ -144,6 +144,9 @@ curl -X POST http://localhost/api/auth/login \
 ├── init-ticdc.sh        # Auto-create CDC changefeed
 ├── deploy.sh            # Automated deployment script
 └── README.md
+└── db-query.s
+└── test-api.sh
+└── update.sh
 ```
 
 ---
