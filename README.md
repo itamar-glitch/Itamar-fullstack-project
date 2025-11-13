@@ -144,11 +144,14 @@ docker-compose ps
 - **Features**: Real-time CDC events, API metrics, visual charts
 
 ### API Endpoints
-- **Health Check**: http://localhost:3000/api/health
-- **Database Health**: http://localhost:3000/api/health (includes DB status)
-- **Login**: `POST http://localhost:3000/api/auth/login`
-- **Register**: `POST http://localhost:3000/api/auth/register`
-- **User Profile**: `GET http://localhost:3000/api/user/profile` (requires JWT token)
+
+> **Note**: All API requests go through Nginx reverse proxy on port 80. Direct access to API on port 3000 is internal only.
+
+- **Health Check**: http://localhost/api/health
+- **Database Health**: http://localhost/api/health (includes DB status)
+- **Login**: `POST http://localhost/api/auth/login`
+- **Register**: `POST http://localhost/api/auth/register`
+- **User Profile**: `GET http://localhost/api/user/profile` (requires JWT token)
 
 ### TiCDC Status
 - **URL**: http://localhost:8300/api/v1/status
@@ -204,7 +207,7 @@ docker-compose logs -f cdc-consumer
   "timestamp": "2025-11-13T17:33:54.000Z",
   "level": "info",
   "category": "cdc",
-  "database": "sre_test",
+  "database": "sre_db",
   "table": "users",
   "operation": "INSERT",
   "data": {
@@ -261,31 +264,40 @@ docker-compose logs -f cdc-consumer
 │   Browser   │
 └──────┬──────┘
        │
-       ├─────────────────> Client (Nginx) :80
-       │                      │
-       └─────────────────> API (Express) :3000
-                               │
-                               ├──> TiDB :4000
-                               │      │
-                               │      └──> TiCDC :8300
-                               │             │
-                               │             └──> Kafka :9092
-                               │                    │
-                               └──────────<─────────┘
-                                          │
-                                    CDC Consumer
-                                       (Logs)
+       └────────────> Client (Nginx) :80
+                           │
+                           ├──> Static Files (HTML/CSS/JS)
+                           │
+                           └──> Proxy to API (Express) :3000 [Internal]
+                                      │
+                                      ├──> TiDB :4000
+                                      │      │
+                                      │      └──> TiCDC :8300
+                                      │             │
+                                      │             └──> Kafka :9092
+                                      │                    │
+                                      └──────────<─────────┘
+                                                 │
+                                           CDC Consumer
+                                         (Logs + Dashboard)
 ```
+
+**Key Architecture Points:**
+- **Nginx Reverse Proxy**: All traffic enters through port 80
+- **API Port 3000**: Internal Docker network only (not exposed externally)
+- **Proxy Path**: `/api/*` requests are forwarded from Nginx to API
+- **CDC Pipeline**: TiDB → TiCDC → Kafka → Consumer → Dashboard
+- **Security**: Single entry point (port 80), internal service isolation
 
 ### Services
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| **client** | 80 | Nginx serving frontend |
-| **api** | 3000 | Node.js Express API |
+| **client** | 80 (external) | Nginx serving frontend + API reverse proxy |
+| **api** | 3000 (internal) | Node.js Express API (behind Nginx) |
 | **tidb** | 4000 | TiDB SQL layer |
 | **pd** | 2379 | Placement Driver |
-| **tikv** | - | Key-Value storage |
+| **tikv** | - | Key-Value storage (internal) |
 | **ticdc** | 8300 | Change Data Capture |
 | **kafka** | 9092 | Message broker |
 | **zookeeper** | 2181 | Kafka coordinator |
@@ -440,12 +452,13 @@ API service (defined in `docker-compose.yml`):
 - `PORT=3000`
 - `DB_HOST=tidb`
 - `DB_PORT=4000`
-- `DB_NAME=sre_test`
+- `DB_NAME=sre_db`
 - `JWT_SECRET` - JWT signing secret
 - `JWT_EXPIRY=24h`
-- `CORS_ORIGIN` - Allowed CORS origins
+- `CORS_ORIGIN` - Allowed CORS origins (optional, auto-detects proxy)
 - `RATE_LIMIT_WINDOW=15` (minutes)
 - `RATE_LIMIT_MAX=100` (requests per window)
+- **Trust Proxy**: Enabled for Nginx reverse proxy
 
 CDC Consumer:
 - `KAFKA_BROKER=kafka:9092`
@@ -460,7 +473,8 @@ CDC Consumer:
 - ✅ **Rate Limiting**: 100 requests per 15 minutes per IP
 - ✅ **Security Headers**: Helmet.js (XSS, CSP, etc.)
 - ✅ **Input Validation**: Express-validator
-- ✅ **CORS Protection**: Configured allowed origins
+- ✅ **CORS Protection**: Auto-allows proxy requests, Docker networks, and localhost
+- ✅ **Reverse Proxy**: Nginx forwards `/api/*` to internal API securely
 - ✅ **Session Security**: HttpOnly cookies for dashboard
 - ✅ **Request Size Limits**: 10MB max body size
 - ✅ **SQL Injection Prevention**: Parameterized queries
@@ -573,25 +587,76 @@ docker-compose logs tidb
 # Check TiCDC status
 curl http://localhost:8300/api/v1/status
 
-# Check changefeed
+# Check changefeed (should show "state": "normal")
 curl http://localhost:8300/api/v1/changefeeds
 
 # View CDC logs
 docker-compose logs ticdc
+
+# Check CDC consumer logs
+docker-compose logs cdc-consumer
+
+# If changefeed is missing, create it manually:
+curl -X POST http://localhost:8300/api/v1/changefeeds \
+  -H "Content-Type: application/json" \
+  -d '{
+    "changefeed_id": "sre-db-cdc",
+    "sink_uri": "kafka://kafka-broker:29092/sre-db-changes?protocol=canal-json&kafka-version=2.6.0&max-message-bytes=67108864",
+    "config": {"force-replicate": true},
+    "rules": ["sre_db.*"]
+  }'
 ```
+
+**Important**: The database filter must be `"rules": ["sre_db.*"]` to match the database name.
 
 ### Monitoring dashboard not loading?
 
 ```bash
-# Clear browser cache (Ctrl+Shift+R)
-# Or use incognito mode
+# Clear browser cache (Ctrl+Shift+R or Ctrl+F5)
+# Or use incognito mode (Ctrl+Shift+N)
 
 # Check client container
 docker-compose logs client
 
-# Rebuild client
+# Check API logs for CORS errors
+docker-compose logs api | grep -i cors
+
+# Rebuild client with latest code
 docker-compose build client
 docker-compose up -d client
+```
+
+### Login returns "Internal server error"?
+
+```bash
+# Check API logs for errors
+docker-compose logs api | tail -50
+
+# Common issues:
+# 1. CORS errors - Fixed by trust proxy setting
+# 2. Database not ready - Wait 30 seconds after startup
+# 3. Session errors - Check express-session configuration
+
+# Restart API
+docker-compose restart api
+```
+
+### External deployment not working?
+
+```bash
+# Check firewall/security groups
+# Required open ports:
+# - Port 80 (HTTP) - Main entry point
+# - Port 3000, 4000, 8300, 9092 - NOT needed externally (internal Docker network)
+
+# AWS Security Group:
+# Allow inbound: Port 80 from 0.0.0.0/0
+
+# Test locally on server first:
+curl http://localhost/
+curl http://localhost/api/health
+
+# If localhost works but external doesn't, it's a firewall issue
 ```
 
 ---
