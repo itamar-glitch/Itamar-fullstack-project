@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS tokens (
 -- Insert default user
 -- Username: admin
 -- Password: admin123
--- Password hash generated with bcrypt (10 rounds): $2b$10$rHq2L6vL4f9a4X8X8X8X8uOQ5uYXbXXJ6bV6Xqb8b8b8b8b8b8b8b8
+-- Password hash generated with bcrypt (10 rounds)
 INSERT INTO users (username, email, password_hash) VALUES 
-('admin', 'admin@example.com', '$2b$10$rHq2L6vL4f9a4X8X8X8X8uOQ5uYXbXXJ6bV6Xqb8b8b8b8b8b8b8b8');
+('admin', 'admin@example.com', '$2b$10$YourValidBcryptHashWillBeGeneratedByAPI');
 

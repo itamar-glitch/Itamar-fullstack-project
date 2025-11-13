@@ -49,6 +49,8 @@ services:
     command: ["--store", "tikv", "--path", "pd:2379", "--host", "0.0.0.0", "-P", "4000"]
     ports:
       - "4000:4000"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     
     # --- FIXED RESOURCE ALLOCATION (Correct YAML and Syntax) ---
     # Allocate 2 CPU cores 
@@ -70,3 +72,26 @@ services:
     depends_on:
       - tidb
       - kafka
+
+  # --- Application Services ---
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: sre-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=tidb
+      - DB_PORT=4000
+      - DB_USER=root
+      - DB_PASSWORD=
+      - DB_NAME=sre_test
+      - JWT_SECRET=sre-test-secret-key-change-in-production
+      - JWT_EXPIRY=24h
+    depends_on:
+      - tidb
+      - kafka
+    restart: unless-stopped
