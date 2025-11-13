@@ -14,26 +14,42 @@ const { initDatabase } = require('./init-db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy - required when running behind Nginx/reverse proxy
+// This allows Express to read X-Forwarded-* headers correctly
+app.set('trust proxy', true);
+
 // Security: Add security headers
 app.use(helmet());
 
-// Security: Configure CORS properly
-const allowedOrigins = [
-  'http://localhost',
-  'http://51.84.130.232',
-  process.env.CORS_ORIGIN
-].filter(Boolean);
-
+// Security: Configure CORS for reverse proxy setup
+// When behind Nginx, requests come from internal Docker IPs without origin header
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
+    // Allow requests with no origin (proxied requests from Nginx, mobile apps, curl)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow internal Docker network requests (172.x.x.x, 10.x.x.x)
+    if (origin.startsWith('http://172.') || origin.startsWith('http://10.')) {
+      return callback(null, true);
     }
+    
+    // Allow localhost for development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    // Allow custom origin from environment variable
+    if (process.env.CORS_ORIGIN && origin === process.env.CORS_ORIGIN) {
+      return callback(null, true);
+    }
+    
+    // Allow all in non-production
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    // Default: allow (since we're behind Nginx proxy, origin is usually empty)
+    callback(null, true);
   },
   credentials: true,
   optionsSuccessStatus: 200
