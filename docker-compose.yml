@@ -106,3 +106,31 @@ services:
     depends_on:
       - api
     restart: unless-stopped
+
+  # TiCDC Initialization Service
+  ticdc-init:
+    image: curlimages/curl:latest
+    container_name: ticdc-init
+    volumes:
+      - ./init-ticdc.sh:/init-ticdc.sh:ro
+    entrypoint: ["/bin/sh", "/init-ticdc.sh"]
+    depends_on:
+      - ticdc
+      - kafka
+      - tidb
+    restart: "no"
+
+  cdc-consumer:
+    build:
+      context: ./cdc-consumer
+      dockerfile: Dockerfile
+    container_name: sre-cdc-consumer
+    environment:
+      - NODE_ENV=production
+      - KAFKA_BROKER=kafka-broker:29092
+      - KAFKA_TOPIC=sre-db-changes
+    depends_on:
+      - kafka
+      - ticdc
+      - ticdc-init
+    restart: unless-stopped

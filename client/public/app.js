@@ -1,5 +1,5 @@
-// Use localhost when testing locally, or relative path when in containers
-const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'http://localhost:3000/api';
+// API URL - dynamically uses the same host as the web page
+const API_URL = `http://${window.location.hostname}:3000/api`;
 
 const showError = (elementId, message) => {
     const errorElement = document.getElementById(elementId);
