@@ -1,5 +1,6 @@
 const { Kafka } = require('kafkajs');
 const { logger, logCDCEvent } = require('./logger');
+const http = require('http');
 
 // Kafka configuration
 const kafka = new Kafka({
@@ -16,6 +17,33 @@ const consumer = kafka.consumer({
   sessionTimeout: 30000,
   heartbeatInterval: 3000
 });
+
+// Send CDC event to API for metrics tracking
+const sendEventToAPI = (event) => {
+  const postData = JSON.stringify(event);
+  
+  const options = {
+    hostname: process.env.API_HOST || 'sre-api',
+    port: process.env.API_PORT || 3000,
+    path: '/api/monitoring/cdc-event',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(postData)
+    }
+  };
+  
+  const req = http.request(options, (res) => {
+    // Silently handle response
+  });
+  
+  req.on('error', (error) => {
+    // Silently ignore API errors to not affect CDC processing
+  });
+  
+  req.write(postData);
+  req.end();
+};
 
 // Parse Canal-JSON format from TiCDC
 const parseCanalMessage = (message) => {
@@ -62,6 +90,8 @@ const startConsumer = async () => {
           
           if (event) {
             logCDCEvent(event);
+            // Send to API for dashboard
+            sendEventToAPI(event);
           }
         } catch (error) {
           logger.error('Error processing message:', error.message);

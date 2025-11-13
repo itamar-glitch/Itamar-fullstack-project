@@ -2,9 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const session = require('express-session');
 const { logger } = require('./config/logger');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const monitoringRoutes = require('./routes/monitoring');
+const metricsMiddleware = require('./middleware/metricsMiddleware');
 const { pool } = require('./config/db');
 const { initDatabase } = require('./init-db');
 
@@ -15,8 +18,23 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet());
 
 // Security: Configure CORS properly
+const allowedOrigins = [
+  'http://localhost',
+  'http://51.84.130.232',
+  process.env.CORS_ORIGIN
+].filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -36,6 +54,21 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Session for monitoring dashboard
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'monitoring-dashboard-secret-change-me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // Set to true only if using HTTPS
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Metrics tracking middleware
+app.use(metricsMiddleware);
+
 app.use((req, res, next) => {
   logger.info(`${req.method} ${req.path} - IP: ${req.ip || req.connection.remoteAddress}`);
   next();
@@ -43,6 +76,7 @@ app.use((req, res, next) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/monitoring', monitoringRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
@@ -105,9 +139,15 @@ const startServer = async () => {
     await pool.query('SELECT 1');
     logger.info('Database connection established');
 
-    app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`API server running on port ${PORT}`);
     });
+
+    // Initialize WebSocket server
+    const { initWebSocketServer } = require('./monitoring/websocket');
+    initWebSocketServer(server);
+    logger.info('WebSocket server initialized');
+
   } catch (error) {
     logger.error('Failed to start server:', error);
     logger.info('Retrying in 5 seconds...');

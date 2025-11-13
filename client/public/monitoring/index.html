@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRE Monitoring Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css?v=4.0.1">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="login-page" class="login-container">
+        <div class="login-box">
+            <h1>🔒 Monitoring Dashboard</h1>
+            <p class="subtitle">Admin Access Only</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <input type="text" id="username" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn-login">Login</button>
+                <div id="login-error" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboard-page" class="dashboard-container hidden">
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1>📊 SRE Monitoring Dashboard</h1>
+                <span id="last-update" class="last-update">Loading...</span>
+            </div>
+            <div class="header-right">
+                <span class="username">👤 <span id="username-display">Admin</span></span>
+                <button id="logout-btn" class="btn-logout">Logout</button>
+            </div>
+        </header>
+
+        <main class="dashboard-main">
+            <!-- CDC Events Stream - MOST IMPORTANT -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>🔄 Real-Time Database Changes (CDC via Kafka)</h2>
+                    <span class="live-indicator">● LIVE</span>
+                </div>
+                <table id="cdc-events-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Database</th>
+                            <th>Table</th>
+                            <th>Operation</th>
+                            <th>Changes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" style="text-align: center;">No CDC events yet</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="total-requests">0</div>
+                        <div class="stat-label">Total Requests</div>
+                    </div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="successful-requests">0</div>
+                        <div class="stat-label">Successful (2xx)</div>
+                    </div>
+                </div>
+                <div class="stat-card error">
+                    <div class="stat-icon">❌</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="error-requests">0</div>
+                        <div class="stat-label">Errors (4xx/5xx)</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-content">
+                        <div class="stat-value"><span id="avg-response-time">0</span>ms</div>
+                        <div class="stat-label">Avg Response Time</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Rate -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2>Success Rate</h2>
+                    <span class="success-rate" id="success-rate">0%</span>
+                </div>
+                <canvas id="successChart"></canvas>
+            </div>
+
+            <!-- Status Code Distribution -->
+            <div class="chart-container">
+                <h2>Status Code Distribution</h2>
+                <canvas id="statusChart"></canvas>
+            </div>
+
+            <!-- Endpoints Performance -->
+            <div class="table-container">
+                <h2>📍 Endpoints Performance</h2>
+                <table id="endpoints-table">
+                    <thead>
+                        <tr>
+                            <th>Endpoint</th>
+                            <th>Total</th>
+                            <th>Success</th>
+                            <th>Errors</th>
+                            <th>Success Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="endpoints-body">
+                        <tr>
+                            <td colspan="5" class="no-data">No data available</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="dashboard.js?v=4.0.1"></script>
+</body>
+</html>
+
