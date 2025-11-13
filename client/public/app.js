@@ -1,5 +1,5 @@
-// API URL - dynamically uses the same host as the web page
-const API_URL = `http://${window.location.hostname}:3000/api`;
+// API URL - uses relative path so Nginx can proxy to the API
+const API_URL = '/api';
 
 const showError = (elementId, message) => {
     const errorElement = document.getElementById(elementId);
