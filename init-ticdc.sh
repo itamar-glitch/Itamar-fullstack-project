@@ -23,6 +23,10 @@ EXISTING=$(curl -s http://ticdc:8300/api/v1/changefeeds | grep "sre-db-cdc" || e
 if [ -n "$EXISTING" ]; then
   echo "Changefeed 'sre-db-cdc' already exists"
 else
+  # Wait for Kafka to be fully ready
+  echo "Waiting for Kafka to be ready..."
+  sleep 10
+  
   # Create the changefeed
   RESULT=$(curl -s -X POST http://ticdc:8300/api/v1/changefeeds \
     -H "Content-Type: application/json" \
@@ -32,7 +36,7 @@ else
       "config": {
         "force-replicate": true
       },
-      "rules": ["sre_test.*"]
+      "rules": ["sre_db.*"]
     }')
   
   if echo "$RESULT" | grep -q "error"; then
