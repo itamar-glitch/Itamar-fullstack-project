@@ -95,3 +95,14 @@ services:
       - tidb
       - kafka
     restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: sre-client
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped

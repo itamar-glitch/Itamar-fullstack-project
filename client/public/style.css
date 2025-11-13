@@ -1,0 +1,159 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+}
+
+.auth-box, .dashboard {
+    background: white;
+    border-radius: 10px;
+    padding: 40px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 500;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.btn {
+    width: 100%;
+    padding: 12px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn:hover {
+    background: #5568d3;
+}
+
+.btn-secondary {
+    background: #6c757d;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.switch-form {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+}
+
+.switch-form a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.switch-form a:hover {
+    text-decoration: underline;
+}
+
+.error-message {
+    color: #dc3545;
+    background: #f8d7da;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 15px;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}
+
+.dashboard {
+    max-width: 600px;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.dashboard-header h1 {
+    margin: 0;
+}
+
+.dashboard-header .btn {
+    width: auto;
+    padding: 10px 20px;
+}
+
+.user-info h2 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.profile-card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.profile-card p {
+    margin-bottom: 12px;
+    color: #555;
+}
+
+.profile-card p:last-child {
+    margin-bottom: 0;
+}
+
+.profile-card strong {
+    color: #333;
+}
+

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRE Technical Test - Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="auth-box" id="login-box">
+                <h1>Login</h1>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-username">Username or Email</label>
+                        <input type="text" id="login-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="btn">Login</button>
+                    <p class="switch-form">Don't have an account? <a href="#" id="show-register">Register</a></p>
+                </form>
+                <div id="login-error" class="error-message"></div>
+            </div>
+
+            <div class="auth-box" id="register-box" style="display: none;">
+                <h1>Register</h1>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" required minlength="3">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" required minlength="6">
+                    </div>
+                    <button type="submit" class="btn">Register</button>
+                    <p class="switch-form">Already have an account? <a href="#" id="show-login">Login</a></p>
+                </form>
+                <div id="register-error" class="error-message"></div>
+            </div>
+
+            <div class="dashboard" id="dashboard" style="display: none;">
+                <div class="dashboard-header">
+                    <h1>Dashboard</h1>
+                    <button id="logout-btn" class="btn btn-secondary">Logout</button>
+                </div>
+                <div class="user-info">
+                    <h2>Welcome, <span id="user-username"></span>!</h2>
+                    <div class="profile-card">
+                        <p><strong>User ID:</strong> <span id="user-id"></span></p>
+                        <p><strong>Email:</strong> <span id="user-email"></span></p>
+                        <p><strong>Member Since:</strong> <span id="user-created"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
