@@ -1,0 +1,72 @@
+version: '3.7'
+
+services:
+  # --- Sink (Kafka) Components ---
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    hostname: kafka-broker
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  # --- TiDB Cluster Components ---
+  pd:
+    image: pingcap/pd:latest
+    container_name: pd
+    command: ["--data-dir=/data/pd", "--client-urls", "http://0.0.0.0:2379", "--peer-urls", "http://0.0.0.0:2380", "--name", "pd1", "--initial-cluster", "pd1=http://pd:2380", "--advertise-client-urls", "http://pd:2379", "--advertise-peer-urls", "http://pd:2380"]
+    ports:
+      - "2379:2379"
+
+  tikv:
+    image: pingcap/tikv:latest
+    container_name: tikv
+    command: ["--data-dir=/data/tikv", "--pd", "pd:2379", "--addr", "0.0.0.0:20160", "--advertise-addr", "tikv:20160"]
+    depends_on:
+      - pd
+
+  tidb:
+    image: pingcap/tidb:latest
+    container_name: tidb
+    command: ["--store", "tikv", "--path", "pd:2379", "--host", "0.0.0.0", "-P", "4000"]
+    ports:
+      - "4000:4000"
+    
+    # --- FIXED RESOURCE ALLOCATION (Correct YAML and Syntax) ---
+    # Allocate 2 CPU cores 
+    cpus: 2.0 
+    # Set a hard memory limit of 4GB (4096m)
+    mem_limit: 4096m
+    # --- END OF RESOURCE ALLOCATION ---
+    
+    depends_on:
+      - tikv
+      
+  # --- TiCDC Component (For Kafka integration) ---
+  ticdc:
+    image: pingcap/ticdc:latest
+    container_name: ticdc
+    command: ["/cdc", "server", "--pd=http://pd:2379", "--addr=0.0.0.0:8300","--advertise-addr=ticdc:8300"]
+    ports:
+      - "8300:8300"
+    depends_on:
+      - tidb
+      - kafka
