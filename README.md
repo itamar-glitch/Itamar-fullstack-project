@@ -29,7 +29,7 @@ chmod +x deploy.sh
 1. Check and install Docker, Docker Compose, and Git (if missing)
 2. Clone the repository
 3. Build all Docker containers
-4. Start all services (TiDB, Kafka, API, Frontend, CDC)
+4. Start all services (TiDB, Kafka, Bacckend, Frontend, CDC)
 5. Initialize database with default admin user
 6. Display access URLs
 
@@ -52,7 +52,7 @@ Replace `YOUR_SERVER_IP` with your machine's IP address (or use `localhost` if t
 
 > **Note**: Only port 80 needs to be accessible. All other services run on internal Docker network.
 
-### Step 3: Verify CDC is Working
+### Step 3: Verify CDC is Working(optinal)
 
 ```bash
 # Create the CDC changefeed (if not auto-created)
@@ -78,42 +78,6 @@ curl -X POST http://localhost/api/auth/login \
 # Open: http://YOUR_SERVER_IP/monitoring/
 ```
 
----
-
-## 📋 Assignment Requirements ✅
-
-This project implements all three parts of the SRE technical test:
-
-### Part 1: Simple Development ✅
-- ✅ Node.js backend with RESTful API (Express.js)
-- ✅ HTML/CSS/JavaScript frontend (Nginx-served)
-- ✅ TiDB database connection
-- ✅ Login screen with authentication
-- ✅ JWT token management stored in database
-- ✅ Tokens sent as HTTP headers
-
-### Part 2: DevOps Implementation ✅
-- ✅ Dockerized client and API services
-- ✅ TiDB configured in Docker environment
-- ✅ Apache Kafka message broker setup
-- ✅ Automatic database initialization with default user (admin/admin123)
-
-### Part 3: Monitoring & Logging (SRE) ✅
-- ✅ User activity logging in JSON format with log4js
-- ✅ Database change monitoring via TiCDC
-- ✅ TiCDC configured in docker-compose.yml
-- ✅ Automatic CDC task creation on startup
-- ✅ Kafka consumer processing CDC events
-- ✅ Structured logging format (timestamp, user ID, action, IP address)
-
-### Bonus: Real-Time Monitoring Dashboard ⭐
-- 🔄 Live CDC events from Kafka (INSERT/UPDATE/DELETE with color-coded badges)
-- 📊 API metrics (request counts, success rates, response times)
-- 📈 Visual charts (success rate pie chart, status code bar chart)
-- 📍 Per-endpoint performance statistics
-- 🔐 Admin-only access with session authentication
-
----
 
 ## 🏗️ Architecture
 
@@ -143,7 +107,7 @@ This project implements all three parts of the SRE technical test:
 **Key Points:**
 - **Single Entry Point**: Port 80 (Nginx)
 - **Reverse Proxy**: Nginx forwards `/api/*` to internal API
-- **Internal Network**: API, TiDB, Kafka run on Docker network (not exposed)
+- **Internal Network**: Bacckend , TiDB, Kafka run on Docker network (not exposed)
 - **CDC Pipeline**: TiDB → TiCDC → Kafka → Consumer → Dashboard
 
 ---
@@ -184,7 +148,7 @@ This project implements all three parts of the SRE technical test:
 
 ---
 
-## 📊 Where to Find Assignment Features
+## 📊 How to use
 
 ### 1. User Activity Logging (Part 3, Requirement 1)
 
@@ -227,7 +191,7 @@ docker-compose logs cdc-consumer
 }
 ```
 
-### 3. Visual Monitoring (Bonus Dashboard)
+### 3. Visual Monitoring
 
 Open `http://YOUR_SERVER_IP/monitoring/` and login with admin/admin123 to see:
 - Real-time CDC events from Kafka (🟢 INSERT, 🟣 UPDATE, 🔴 DELETE)
@@ -252,24 +216,6 @@ Open `http://YOUR_SERVER_IP/monitoring/` and login with admin/admin123 to see:
 
 ---
 
-## 🐛 Common Issues & Fixes
-
-### Services not starting?
-```bash
-docker-compose logs        # Check all logs
-docker-compose restart api # Restart specific service
-```
-
-### CDC not capturing changes?
-```bash
-# Check changefeed exists
-curl http://localhost:8300/api/v1/changefeeds
-
-# Create manually if missing (see Step 3 above)
-
-# Generate test data
-./db-query.sh "INSERT INTO sre_db.users (username, email, password_hash) VALUES ('test', 'test@test.com', 'hash');"
-```
 
 ### External access not working?
 ```bash
@@ -309,8 +255,8 @@ curl http://localhost/api/health
 
 **Resource Limits:**
 - TiDB: 4GB RAM, 2 CPUs
-- API: 512MB RAM, 1 CPU
-- Client: 256MB RAM, 0.5 CPU
+- Bacckend: 512MB RAM, 1 CPU
+- Frontend: 256MB RAM, 0.5 CPU
 - CDC Consumer: 256MB RAM, 0.5 CPU
 
 **Features:**
@@ -322,7 +268,7 @@ curl http://localhost/api/health
 
 ---
 
-## 🎓 Interview Demo Flow
+## 🎓 Demo Flow
 
 1. **Show deployment**: `./deploy.sh` completing
 2. **Main app**: Login at `http://YOUR_SERVER_IP/`
@@ -353,30 +299,7 @@ curl http://localhost/api/health
 
 ---
 
-## ✨ Project Highlights
-
-- 🎯 **100% Compliance**: All assignment requirements fully implemented
-- 🚀 **One-Command Deploy**: Automated setup with `./deploy.sh`
-- 📊 **Bonus Dashboard**: Professional real-time monitoring UI
-- 🐳 **Production-Ready**: Security, monitoring, health checks, graceful shutdown
-- 📝 **Structured Logging**: JSON logs throughout (log4js)
-- 🔒 **Enterprise Security**: Multiple layers (rate limiting, validation, headers, CORS)
-- 🎨 **Modern UI**: Responsive, animated, professional design
-- 📈 **Scalable**: Distributed TiDB cluster, microservices architecture
-
----
 
 ## 👤 Author
-
 **Itamar Azran**  
-GitHub: [@itamar-glitch](https://github.com/itamar-glitch)
 
----
-
-## 📄 License
-
-Created for technical assessment.
-
----
-
-**Ready for the interview! 🚀**
